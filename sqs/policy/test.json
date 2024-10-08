@@ -1,0 +1,11 @@
+{
+  "method": "sqs:CreateQueue",
+  "queue_name": "orders.fifo",
+  "queue_type": "FIFO",
+  "dead_letter_queue_arn": "arn:aws:sqs:region:account-id:dead-letter-queue",
+  "encryption": true,
+  "tags": {
+    "owner": "team-xyz",
+    "environment": "production"
+  }
+}
