@@ -1,0 +1,5 @@
+{
+  "method": "eks:CreateCluster",
+  "secrets_encryption": true,
+  "logging_enabled": ["api", "audit", "controllerManager"]
+}
