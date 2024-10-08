@@ -1,0 +1,9 @@
+{
+  "method": "sns:CreateTopic",
+  "topic_name": "prod-my-topic",
+  "kms_master_key_id": "arn:aws:kms:region:account-id:key/key-id",
+  "tags": {
+    "environment": "production",
+    "owner": "team-xyz"
+  }
+}
