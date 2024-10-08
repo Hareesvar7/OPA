@@ -1,0 +1,4 @@
+{
+  "method": "lambda:CreateFunction",
+  "memory_size": 128
+}
