@@ -1,0 +1,9 @@
+{
+  "method": "ec2:RunInstances",
+  "instance_type": "t2.micro",
+  "ami_id": "ami-0123456789abcdef0",
+  "tags": {
+    "cost-center": "marketing",
+    "project-id": "12345"
+  }
+}
