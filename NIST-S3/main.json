@@ -1,0 +1,65 @@
+{
+  "buckets": [
+    {
+      "name": "compliant-bucket",
+      "access_point": {
+        "vpc": true
+      },
+      "lock": {
+        "enabled": true
+      },
+      "logging": {
+        "enabled": true,
+        "target_bucket": "logs-bucket",
+        "target_prefix": "logs/"
+      },
+      "acls": {
+        "read": "private",
+        "write": "private"
+      },
+      "encryption": {
+        "sse_algorithm": "aws:kms",
+        "kms_key_id": "kms-key-id"
+      },
+      "versioning": {
+        "enabled": true
+      },
+      "lifecycle_rules": [
+        {
+          "id": "expire-old-objects",
+          "status": "enabled",
+          "expiration_days": 365
+        }
+      ],
+      "tags": {
+        "Environment": "Production",
+        "Compliance": "NIST"
+      }
+    },
+    {
+      "name": "non-compliant-bucket",
+      "access_point": {
+        "vpc": false
+      },
+      "lock": {
+        "enabled": false
+      },
+      "logging": {
+        "enabled": false,
+        "target_bucket": "",
+        "target_prefix": ""
+      },
+      "acls": {
+        "read": "public",
+        "write": "public"
+      },
+      "encryption": {
+        "sse_algorithm": ""
+      },
+      "versioning": {
+        "enabled": false
+      },
+      "lifecycle_rules": []
+    }
+  ]
+}
