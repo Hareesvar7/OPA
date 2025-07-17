@@ -1,4 +1,6 @@
-- name: Archive build
-  run: |
-    APP_NAME=$(node -p "require('./package.json').name")
-    tar -czf ${APP_NAME}-build.tgz -C build .
+- name: Get package name from package.json
+  id: pkg
+  run: echo "name=$(jq -r .name package.json)" >> "$GITHUB_OUTPUT"
+
+- name: Archive dist folder
+  run: tar -czf ${{ steps.pkg.outputs.name }}.tgz dist/
