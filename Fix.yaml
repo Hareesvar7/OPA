@@ -1,0 +1,4 @@
+- name: Archive build
+  run: |
+    APP_NAME=$(node -p "require('./package.json').name")
+    tar -czf ${APP_NAME}-build.tgz -C build .
