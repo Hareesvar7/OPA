@@ -1,0 +1,37 @@
+name: Deploy to QA
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-qa:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download from JFrog (QA)
+        run: |
+          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_PASSWORD }}" \
+            -O "${{ secrets.JFROG_URL }}/generic/react-app/dev/build-artifact.tar.gz"
+
+      - name: Extract artifact
+        run: |
+          mkdir build
+          tar -xzf build-artifact.tar.gz -C build
+
+      - name: Configure AWS credentials (QA)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_QA }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_QA }}
+          region: us-east-1
+
+      - name: Deploy to S3 (QA)
+        run: aws s3 cp build/ s3://${{ secrets.S3_BUCKET_QA }}/ --recursive
+
+      - name: Invalidate CloudFront (QA)
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_QA_DISTRIBUTION }} \
+            --paths "/*"
