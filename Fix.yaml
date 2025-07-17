@@ -66,3 +66,19 @@ jobs:
             --url=${{ secrets.ARTIFACTORY_URL }} \
             --user=${{ secrets.JFROG_USERNAME }} \
             --password=${{ secrets.JFROG_PASSWORD }}
+
+
+
+
+- name: Extract package name and set absolute path
+  id: pkg
+  run: |
+    PKG_NAME=$(jq -r .name package.json)
+    TGZ_FILE="${PKG_NAME}.tgz"
+    tar -czf "$TGZ_FILE" dist/
+    echo "name=$PKG_NAME" >> "$GITHUB_OUTPUT"
+    echo "path=$(realpath $TGZ_FILE)" >> "$GITHUB_OUTPUT"
+
+- name: Upload to JFrog
+  run: |
+    jf rt upload "${{ steps.pkg.outputs.path }}" "npm-local/${{ steps.pkg.outputs.name }}/artifacts/"
