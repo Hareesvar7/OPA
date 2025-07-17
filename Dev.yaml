@@ -1,0 +1,50 @@
+name: Deploy to Dev
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React App
+        run: npm run build
+
+      - name: Archive build
+        run: tar -czf build-artifact.tar.gz -C build .
+
+      - name: Upload to JFrog (Dev)
+        run: |
+          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_PASSWORD }}" \
+            -T build-artifact.tar.gz \
+            "${{ secrets.JFROG_URL }}/generic/react-app/dev/build-artifact.tar.gz"
+
+      - name: Configure AWS credentials (Dev)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          region: us-east-1
+
+      - name: Deploy to S3 (Dev)
+        run: aws s3 cp build/ s3://${{ secrets.S3_BUCKET_DEV }}/ --recursive
+
+      - name: Invalidate CloudFront (Dev)
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DEV_DISTRIBUTION }} \
+            --paths "/*"
