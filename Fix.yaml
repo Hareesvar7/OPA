@@ -4,3 +4,41 @@
 
 - name: Archive dist folder
   run: tar -czf ${{ steps.pkg.outputs.name }}.tgz dist/
+
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Extract package name
+        id: pkg
+        run: echo "name=$(jq -r .name package.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Archive dist folder
+        run: tar -czf ${{ steps.pkg.outputs.name }}.tgz dist/
+
+      - name: Install JFrog CLI
+        run: curl -fL https://install-cli.jfrog.io | sh
+
+      - name: Verify JFrog CLI Installation
+        run: |
+          ./jf --version
+
+      - name: Configure JFrog CLI
+        run: |
+          ./jf config add my-server \
+            --url=https://<your-domain>.jfrog.io/artifactory \
+            --user=${{ secrets.JFROG_USERNAME }} \
+            --password=${{ secrets.JFROG_PASSWORD }} \
+            --interactive=false
+
+      - name: Upload .tgz to Artifactory
+        run: |
+          ./jf rt u "${{ steps.pkg.outputs.name }}.tgz" "my-repo/my-path/" --server-id=my-server
