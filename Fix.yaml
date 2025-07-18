@@ -82,3 +82,9 @@ jobs:
 - name: Upload to JFrog
   run: |
     jf rt upload "${{ steps.pkg.outputs.path }}" "npm-local/${{ steps.pkg.outputs.name }}/artifacts/"
+
+
+- name: Print build info
+  run: |
+    echo "Build Name: ${{ inputs.build_name }}"
+    echo "Build Number: ${{ inputs.build_number }}"
