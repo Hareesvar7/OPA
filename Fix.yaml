@@ -88,3 +88,21 @@ jobs:
   run: |
     echo "Build Name: ${{ inputs.build_name }}"
     echo "Build Number: ${{ inputs.build_number }}"
+
+
+
+
+
+    - name: Upload to S3
+  run: aws s3 sync dist/ s3://your-bucket-name --delete
+
+- name: Invalidate CloudFront Cache
+  run: |
+    DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
+      --stack-name my-stack \
+      --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
+      --output text)
+
+    aws cloudfront create-invalidation \
+      --distribution-id $DISTRIBUTION_ID \
+      --paths "/*"
