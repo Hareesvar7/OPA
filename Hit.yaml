@@ -1,23 +1,14 @@
-- name: Check for HIGH/CRITICAL in Mend SAST
-  if: always()
+- name: Check for high/critical vulnerabilities
   run: |
-    FILE=".mend/logs/sast/sast.json"
+    HIGH=$(jq '.vulnerabilityStatistics.high' ui/Whitesource/scan_report.json)
+    CRITICAL=$(jq '.vulnerabilityStatistics.critical // 0' ui/Whitesource/scan_report.json)
 
-    if [ ! -f "$FILE" ]; then
-      echo "SAST result file not found!"
-      exit 1
-    fi
-
-    # Count HIGH and CRITICAL issues
-    HIGH=$(jq '[.[] | select(.severity == "HIGH")] | length' "$FILE")
-    CRITICAL=$(jq '[.[] | select(.severity == "CRITICAL")] | length' "$FILE")
-
-    echo "High severity issues: $HIGH"
-    echo "Critical severity issues: $CRITICAL"
+    echo "High: $HIGH"
+    echo "Critical: $CRITICAL"
 
     if [ "$HIGH" -gt 0 ] || [ "$CRITICAL" -gt 0 ]; then
-      echo "❌ Failing build due to HIGH or CRITICAL issues"
+      echo "❌ Found High or Critical vulnerabilities"
       exit 1
     else
-      echo "✅ No blocking vulnerabilities found"
+      echo "✅ No High or Critical vulnerabilities"
     fi
