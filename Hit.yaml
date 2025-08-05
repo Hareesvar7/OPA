@@ -1,0 +1,67 @@
+name: Mend Scan with Failure on Vulnerabilities
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  mend-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Download Mend Unified Agent
+        run: |
+          curl -LJO https://unified-agent.s3.amazonaws.com/wss-unified-agent.jar
+
+      - name: Run Mend Scan
+        env:
+          WS_APIKEY: ${{ secrets.WS_APIKEY }}
+          ORG_TOKEN: ${{ secrets.ORG_TOKEN }}
+        run: |
+          cat <<EOF > wss-unified-agent.config
+apiKey=${{ secrets.WS_APIKEY }}
+projectName=my-ui
+projectVersion=1.0.0
+projectToken=${{ secrets.ORG_TOKEN }}
+includes=**
+excludes=**/node_modules/**
+npm.resolveDependencies=true
+npm.ignoreScripts=true
+forceCheckAllDependencies=true
+forceUpdate=true
+generateProjectDetailsJson=true
+EOF
+
+          java -jar wss-unified-agent.jar -c wss-unified-agent.config
+
+      - name: Parse Mend Report and Fail on High/Critical
+        run: |
+          REPORT_FILE="target/wss-reports/project-details.json"
+          if [ ! -f "$REPORT_FILE" ]; then
+            echo "Mend report not found!"
+            exit 1
+          fi
+
+          HIGH_COUNT=$(jq '.libraries[]?.vulnerabilities[]? | select(.severity=="HIGH")' $REPORT_FILE | wc -l)
+          CRITICAL_COUNT=$(jq '.libraries[]?.vulnerabilities[]? | select(.severity=="CRITICAL")' $REPORT_FILE | wc -l)
+
+          echo "Found $HIGH_COUNT High and $CRITICAL_COUNT Critical vulnerabilities"
+
+          if [ "$HIGH_COUNT" -gt 0 ] || [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "❌ Failing build due to High or Critical vulnerabilities"
+            exit 1
+          else
+            echo "✅ No High or Critical vulnerabilities found"
+          fi
