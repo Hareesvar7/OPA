@@ -1,3 +1,26 @@
+- name: Check for policy violations
+  run: |
+    total_rejected=$(jq '.summary.totalRejectedLibraries' policyRejection.json)
+    echo "Total rejected libraries: $total_rejected"
+    if [ "$total_rejected" -gt 1 ]; then
+      echo "❌ Policy violation detected. Failing pipeline."
+      exit 1
+    else
+      echo "✅ No policy violation threshold exceeded."
+    fi
+
+
+
+
+
+
+
+
+
+
+
+
+
 - name: Get package name from package.json
   id: pkg
   run: echo "name=$(jq -r .name package.json)" >> "$GITHUB_OUTPUT"
