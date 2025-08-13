@@ -1,0 +1,59 @@
+name: Jira to Git Mapping
+
+on:
+  workflow_dispatch:
+    inputs:
+      fixed_version:
+        description: 'Jira Fixed Version'
+        required: true
+        type: string
+  push:
+    branches:
+      - main
+
+jobs:
+  mapping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Jira Tickets for Fixed Version
+        env:
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+          JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          FIXED_VERSION: ${{ github.event.inputs.fixed_version }}
+        run: |
+          echo "Fetching Jira issues for Fixed Version: $FIXED_VERSION"
+
+          curl -s -u "$JIRA_USER:$JIRA_TOKEN" \
+            -G "$JIRA_BASE_URL/rest/api/2/search" \
+            --data-urlencode "jql=fixVersion=\"$FIXED_VERSION\" AND status=Done" \
+            --data-urlencode "fields=key,customfield_12345" \
+            -H "Accept: application/json" > tickets.json
+
+          echo "Total issues found:"
+          cat tickets.json | jq '.issues | length'
+
+      - name: Extract Mapping into CSV
+        run: |
+          echo "Jira Ticket,Repository,Git Tag,PR Name" > mapping.csv
+
+          jq -r '
+            .issues[] as $i |
+            $i.key as $ticket |
+            ($i.fields.customfield_12345.pullRequests[]? |
+              [
+                $ticket,
+                .repository.name,
+                (.url | split("/")[-1]),
+                .name
+              ]) | @csv
+          ' tickets.json >> mapping.csv
+
+          echo "Generated mapping.csv:"
+          cat mapping.csv
+
+      - name: Upload Mapping CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: jira-github-mapping
+          path: mapping.csv
