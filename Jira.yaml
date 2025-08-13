@@ -1,0 +1,22 @@
+name: Get JIRA Tickets
+
+on:
+  workflow_dispatch: # Manually triggered workflow
+
+jobs:
+  get-tickets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get tickets from JIRA
+        run: |
+          FIXED_VERSION="1.2.3"  # Example version
+          echo "Fetching tickets for version: $FIXED_VERSION"
+
+          curl -s -u "${{ secrets.JIRA_USER }}:${{ secrets.JIRA_TOKEN }}" \
+            -X GET \
+            -H "Content-Type: application/json" \
+            "${{ secrets.JIRA_URL }}/rest/api/2/search?jql=project=SMAR%20AND%20status=Closed%20AND%20fixVersion=%22${FIXED_VERSION}%22" \
+            | jq -r '.issues[].key' | tee tickets.txt
+
+          echo "----- Ticket Numbers -----"
+          cat tickets.txt
