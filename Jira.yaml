@@ -1,4 +1,4 @@
-name: Jira to Git Mapping
+name: Jira Fixed Version Mapping
 
 on:
   workflow_dispatch:
@@ -15,19 +15,23 @@ jobs:
   mapping:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch Jira Tickets for Fixed Version
+      - name: Fetch Jira Tickets by Fixed Version
         env:
           JIRA_USER: ${{ secrets.JIRA_USER }}
-          JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+          JIRA_PASS: ${{ secrets.JIRA_PASS }}
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           FIXED_VERSION: ${{ github.event.inputs.fixed_version }}
         run: |
           echo "Fetching Jira issues for Fixed Version: $FIXED_VERSION"
 
-          curl -s -u "$JIRA_USER:$JIRA_TOKEN" \
+          # Jira JQL same as your Python example
+          JQL="project = SMAR AND status = Closed AND fixVersion = \"$FIXED_VERSION\""
+
+          curl -s -u "$JIRA_USER:$JIRA_PASS" \
             -G "$JIRA_BASE_URL/rest/api/2/search" \
-            --data-urlencode "jql=fixVersion=\"$FIXED_VERSION\" AND status=Done" \
-            --data-urlencode "fields=key,customfield_12345" \
+            --data-urlencode "jql=$JQL" \
+            --data-urlencode "maxResults=1000" \
+            --data-urlencode "fields=key,description" \
             -H "Accept: application/json" > tickets.json
 
           echo "Total issues found:"
@@ -37,16 +41,12 @@ jobs:
         run: |
           echo "Jira Ticket,Repository,Git Tag,PR Name" > mapping.csv
 
+          # NOTE: Replace '.fields.description' parsing with actual GitHub integration field path
           jq -r '
             .issues[] as $i |
             $i.key as $ticket |
-            ($i.fields.customfield_12345.pullRequests[]? |
-              [
-                $ticket,
-                .repository.name,
-                (.url | split("/")[-1]),
-                .name
-              ]) | @csv
+            ($i.fields.description | split("\n") | map(select(length > 0))[]? |
+              [$ticket, ., "TBD", "TBD"]) | @csv
           ' tickets.json >> mapping.csv
 
           echo "Generated mapping.csv:"
