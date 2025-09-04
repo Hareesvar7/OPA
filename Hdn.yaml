@@ -1,3 +1,85 @@
-if: |
-  github.event_name == 'release' ||
-  (github.event_name == 'workflow_dispatch' && github.event.inputs.noscan != 'true')
+name: Secure Deploy Workflow
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Choose environment"
+        type: choice
+        options:
+          - stage
+          - prod
+          - client1
+          - client2
+        required: true
+      noscan:
+        description: "Skip Sonar scan?"
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "false"
+      passphrase:
+        description: "Enter passphrase for prod/client deploy"
+        required: false
+        type: string
+
+jobs:
+  sonar-scan:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.noscan == 'false')
+    steps:
+      - name: Run SonarQube Scan
+        run: echo "🔍 Running Sonar scan..."
+
+  stage-deploy:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'release' && inputs.environment == 'stage') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'stage')
+    steps:
+      - run: echo "🚀 Deploying to STAGE..."
+
+  prod-deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'prod'
+    steps:
+      - name: Validate passphrase
+        run: |
+          if [ "${{ inputs.passphrase }}" != "${{ secrets.PROD_WORKFLOW_KEY }}" ]; then
+            echo "❌ Invalid passphrase. Exiting..."
+            exit 1
+          fi
+          echo "✅ Passphrase validated."
+      - run: echo "🚀 Deploying to PROD..."
+
+  client1-deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'client1'
+    steps:
+      - name: Validate passphrase
+        run: |
+          if [ "${{ inputs.passphrase }}" != "${{ secrets.PROD_WORKFLOW_KEY }}" ]; then
+            echo "❌ Invalid passphrase. Exiting..."
+            exit 1
+          fi
+          echo "✅ Passphrase validated."
+      - run: echo "🚀 Deploying to CLIENT1..."
+
+  client2-deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'client2'
+    steps:
+      - name: Validate passphrase
+        run: |
+          if [ "${{ inputs.passphrase }}" != "${{ secrets.PROD_WORKFLOW_KEY }}" ]; then
+            echo "❌ Invalid passphrase. Exiting..."
+            exit 1
+          fi
+          echo "✅ Passphrase validated."
+      - run: echo "🚀 Deploying to CLIENT2..."
