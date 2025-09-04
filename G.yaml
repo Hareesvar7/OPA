@@ -1,0 +1,53 @@
+name: Deploy App
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Where to deploy (stage/prod/client1/client2)"
+        required: true
+        default: "stage"
+      noscan:
+        description: "Disable Sonar scan? (true/false)"
+        required: true
+        default: "false"
+
+jobs:
+  sonar-scan:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.noscan != 'true' }}
+    steps:
+      - name: Run SonarQube Scan
+        run: echo "🔍 Running Sonar scan..."
+
+  deploy-stage:
+    runs-on: ubuntu-latest
+    # run if: release created OR manual input = stage
+    if: ${{ github.event_name == 'release' || github.event.inputs.environment == 'stage' }}
+    steps:
+      - name: Deploy to Stage
+        run: echo "🚀 Deploying to STAGE environment..."
+
+  deploy-prod:
+    runs-on: ubuntu-latest
+    # run only if manual trigger and input = prod
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod' }}
+    steps:
+      - name: Deploy to Prod
+        run: echo "🚀 Deploying to PROD environment..."
+
+  deploy-client1:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'client1' }}
+    steps:
+      - name: Deploy to Client1
+        run: echo "🚀 Deploying to CLIENT1 environment..."
+
+  deploy-client2:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'client2' }}
+    steps:
+      - name: Deploy to Client2
+        run: echo "🚀 Deploying to CLIENT2 environment..."
